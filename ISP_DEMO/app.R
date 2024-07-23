@@ -28,15 +28,15 @@ library(shinycssloaders)
 # )
 # 
 # 
-# #### script para leer los archivos de los boards en el folder "Pins_Boards" en el drive de Nettic
+# #### script para leer los archivos de los boards en el folder "Pins_Boards" en el drive de ISP_DEMO
 # coneccion a la carpeta 
-# board <- board_gdrive(googledrive::as_id("https://drive.google.com/drive/u/1/folders/1TVihHB5mprgsQEv3Po6nF8WhNJo-mlqU")) #coneccion al folder de "Bases de Datos Nettic"
+# board <- board_gdrive(googledrive::as_id("https://drive.google.com/drive/u/1/folders/1TVihHB5mprgsQEv3Po6nF8WhNJo-mlqU")) #coneccion al folder de "Bases de Datos ISP_DEMO"
 # a <- board %>% pin_read("DB_Facturas") #leeo del board el archivo "DB_Facturas"
 
 # "G:/My Drive/DeepForest Analytics/ISP_DEMO/ISP_DEMO/CLIENTES_ACTIVOS_POR_MES_ISP_DEMO.RData"
 # ###  Se usa solo para desarrollo local
 # Tickets_DB <-  readRDS(file ="G:/My Drive/DeepForest Analytics/ISP_DEMO/ISP_DEMO/Tickets_DB_ISP_DEMO.RData")
-# Clientes_NETTIC <-  readRDS(file ="G:/My Drive/DeepForest Analytics/ISP_DEMO/ISP_DEMO/Clientes_ISP_DEMO.RData")
+# Clientes_ISP_DEMO <-  readRDS(file ="G:/My Drive/DeepForest Analytics/ISP_DEMO/ISP_DEMO/Clientes_ISP_DEMO.RData")
 # DB_Facturas <- readRDS(file ="G:/My Drive/DeepForest Analytics/ISP_DEMO/ISP_DEMO/DB_Facturas_ISP_DEMO.RData")
 # CLIENTES_ACTIVOS_POR_MES <- readRDS("G:/My Drive/DeepForest Analytics/ISP_DEMO/ISP_DEMO/CLIENTES_ACTIVOS_POR_MES_ISP_DEMO.RData")
 # Tickets_sin_servicio <- c("Antena Desalineada" , "Cable de Fibra Dañado", "Cable Fibra Dañado", "Cambio de Domicilio", "Poe Dañado", "Potencia Alta", "No tiene Internet")
@@ -47,8 +47,8 @@ library(shinycssloaders)
 Tickets_DB <-  readRDS(file ="Tickets_DB_ISP_DEMO.RData")
 Tickets_DB <- Tickets_DB %>% 
   dplyr::filter(!is.na(Ciudad.Municipio))
-Clientes_NETTIC <-  readRDS(file ="CLIENTES_ISP_DEMO.RData")
-Clientes_NETTIC <- Clientes_NETTIC %>% 
+Clientes_ISP_DEMO <-  readRDS(file ="CLIENTES_ISP_DEMO.RData")
+Clientes_ISP_DEMO <- Clientes_ISP_DEMO %>% 
   dplyr::filter(!is.na(Ciudad.Municipio))
 DB_Facturas <- readRDS(file ="DB_Facturas_ISP_DEMO.RData")
 CLIENTES_ACTIVOS_POR_MES <- readRDS(file ="CLIENTES_ACTIVOS_POR_MES_ISP_DEMO.RData")
@@ -113,24 +113,24 @@ grafica_barras_averias_sobre_activo <- function(df_in){
 
 #### ETL DATA ####
 #### INSTALACIONES ####
-Clientes_activos <- Clientes_NETTIC %>% 
+Clientes_activos <- Clientes_ISP_DEMO %>% 
   dplyr::distinct(ID, Nombre, Fecha.Instalación, .keep_all = TRUE) %>% 
   dplyr::group_by(Estado) %>% 
   dplyr::summarise(Clientes= n(), .groups = "drop") 
 Clientes_activos <- as.numeric(Clientes_activos[1,2])
 
-Instalaciones_por_mes <- Clientes_NETTIC %>% 
+Instalaciones_por_mes <- Clientes_ISP_DEMO %>% 
   dplyr::select(ID, Nombre, Fecha.Instalación, Barrio.Localidad, Mes_Instalacion) %>% 
   dplyr::distinct(ID, Nombre, Fecha.Instalación, .keep_all = TRUE) %>% 
   dplyr::group_by(Mes_Instalacion) %>%
   dplyr::summarise(Intstalaciones_Mensuales =n(), .groups = "drop")
 
 #### TICKETS ####
-Tickets_NETTIC_Mes <- Tickets_DB %>%
+Tickets_ISP_DEMO_Mes <- Tickets_DB %>%
   dplyr::group_by(Mes, Tipo1) %>% 
   dplyr::summarise(Tickets = n(), .groups = "drop")
 
-Tickets_NETTIC_Inicio_Semana <- Tickets_DB %>%
+Tickets_ISP_DEMO_Inicio_Semana <- Tickets_DB %>%
   dplyr::group_by(Inicio_Semana, Tipo1) %>% 
   dplyr::summarise(Tickets = n(), .groups = "drop")
 
@@ -292,7 +292,7 @@ Tickets_Averias <- Tickets_DB %>%
   dplyr::select(Mes, Ciudad.Municipio, Tipo_Rx_Dx, Cantidad)
 
 # tabla de instalaciones por mes por municipio 
-Clientes_Meses <- Clientes_NETTIC %>% 
+Clientes_Meses <- Clientes_ISP_DEMO %>% 
   dplyr::distinct(ID, Nombre, Fecha.Instalación, .keep_all = TRUE) %>%
   dplyr::filter(Mes_Instalacion >= "2023-02-01") %>% 
   dplyr::group_by(Mes_Instalacion, Ciudad.Municipio.1) %>% 
@@ -303,7 +303,7 @@ names(Clientes_Meses)[which(colnames(Clientes_Meses)== "Mes_Instalacion")] <- "M
 names(Clientes_Meses)[which(colnames(Clientes_Meses)== "Ciudad.Municipio.1")] <- "Ciudad.Municipio"
 
 #leo el archivo de clientes activos por mes que prepara claudia, el gsheet lo bajo como csv 
-#este archivo esta el drive de nettic -> "Base de Datos Nettic"
+#este archivo esta el drive de ISP_DEMO -> "Base de Datos ISP_DEMO"
 Clientes_final_mes <- CLIENTES_ACTIVOS_POR_MES %>% 
   tidyr::pivot_longer(!Mes, names_to = "Ciudad.Municipio", values_to = "Cantidad") %>% 
   dplyr::mutate(Tipo_Rx_Dx = "Clientes_Finales") %>% 
@@ -558,7 +558,7 @@ server <- function(input, output, session) {
   })
   
   ##
-  #value Box de clientes totales en nettic
+  #value Box de clientes totales en ISP_DEMO
   ##
   
   # observe({   
@@ -570,7 +570,7 @@ server <- function(input, output, session) {
   
   # Outputs Comercial ----
   output$Clientes_Municipio <- echarts4r::renderEcharts4r({
-    Clientes_NETTIC %>% 
+    Clientes_ISP_DEMO %>% 
       dplyr::filter(Estado == "Activo") %>% 
       dplyr::distinct(ID, Nombre, Fecha.Instalación, .keep_all = TRUE) %>% 
       dplyr::group_by(Ciudad.Municipio.1) %>% 
@@ -600,7 +600,7 @@ server <- function(input, output, session) {
   })
   
   output$Clientes_Municipio_ultimo_mes <- echarts4r::renderEcharts4r({
-    Clientes_NETTIC %>% 
+    Clientes_ISP_DEMO %>% 
       dplyr::filter(Estado == "Activo") %>%
       dplyr::distinct(ID, Nombre, Fecha.Instalación, .keep_all = TRUE) %>% 
       dplyr::group_by(Mes_Instalacion, Ciudad.Municipio.1) %>%
@@ -620,7 +620,7 @@ server <- function(input, output, session) {
   
   #
   output$instalaciones_por_municipio_2023_2024 <- echarts4r::renderEcharts4r({
-    Clientes_NETTIC %>% 
+    Clientes_ISP_DEMO %>% 
       dplyr::filter(Mes_Instalacion >= "2023-01-01") %>%
       dplyr::distinct(ID, Nombre, Fecha.Instalación, .keep_all = TRUE) %>% 
       dplyr::select(Nombre, Fecha.Instalación, Ciudad.Municipio.1, Mes_Instalacion) %>% 
