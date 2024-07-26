@@ -44,13 +44,26 @@ library(shinycssloaders)
 
 
 ### BASES DE DATOS al la hora de hacer el deploy####
-Tickets_DB <-  readRDS(file ="Tickets_DB_ISP_DEMO.RData")
-Tickets_DB <- Tickets_DB %>% 
-  dplyr::filter(!is.na(Ciudad.Municipio))
 Clientes_ISP_DEMO <-  readRDS(file ="CLIENTES_ISP_DEMO.RData")
 Clientes_ISP_DEMO <- Clientes_ISP_DEMO %>% 
   dplyr::filter(!is.na(Ciudad.Municipio))
+
+indices <- sample(nrow(Clientes_ISP_DEMO), 8000)
+# Seleccionar las filas correspondientes
+Clientes_ISP_DEMO <- Clientes_ISP_DEMO[indices, ]
+Clientes_a_filtrar <- Clientes_ISP_DEMO$Nombre
+
+Tickets_DB <-  readRDS(file ="Tickets_DB_ISP_DEMO.RData")
+Tickets_DB <- Tickets_DB %>% 
+  dplyr::filter(!is.na(Ciudad.Municipio))
+Tickets_DB <- Tickets_DB %>% 
+  dplyr::filter(Nombre %in% Clientes_a_filtrar)
+
+
 DB_Facturas <- readRDS(file ="DB_Facturas_ISP_DEMO.RData")
+DB_Facturas <- DB_Facturas %>% 
+  dplyr::filter(Nombre %in% Clientes_a_filtrar)
+
 CLIENTES_ACTIVOS_POR_MES <- readRDS(file ="CLIENTES_ACTIVOS_POR_MES_ISP_DEMO.RData")
 Tickets_sin_servicio <- c("Antena Desalineada" , "Cable de Fibra Dañado", "Cable Fibra Dañado", "Cambio de Domicilio", "Poe Dañado", "Potencia Alta", "No tiene Internet")
 
@@ -324,12 +337,14 @@ DF_averias_Dx_Rx_clientesMes <- Tickets_Averias %>%
   dplyr::bind_rows(Clientes_inicial_mes)  %>%
   dplyr::bind_rows(Tickets_Dx_Rx) 
 
-#aqui agrego los netos y el churn al cuadro total
+##### Netos y Churn al cuadro total ----
 DF_averias_Dx_Rx_clientesMes <- DF_averias_Dx_Rx_clientesMes %>% 
   tidyr::pivot_wider(names_from = Tipo_Rx_Dx, values_from = Cantidad, values_fill = 0) %>% 
   dplyr::mutate(Netos = (Instalacion+Rx)- Dx,
                 Churn = ((Dx/Clientes_Inicial)*100)) %>% #definir churn si es Dx/Clientes o (Dx-Rx)/Clientes
   tidyr::pivot_longer(!c(Mes, Ciudad.Municipio), values_to = "Cantidad")
+
+Churn_mes_anterior <- DF_averias_Dx_Rx_clientesMes #%>% 
 
 # Data frame de Dx, Rx, Instalaciones y Netos, Cambiar el mes que se filtra
 Dx_Rx_Inst_Netos <- DF_averias_Dx_Rx_clientesMes %>%
@@ -375,6 +390,54 @@ DF_Averias_sobre_activos_total <- dplyr::left_join(DF_Averias_sobre_activos_tota
 
 
 #### Facturacion ----
+##### ARPU ----
+DB_Facturas <- DB_Facturas %>% 
+  dplyr::mutate(Mes_facturacion = lubridate::floor_date(DB_Facturas$Fecha.Emisión, unit = "month")) %>% 
+  dplyr::left_join(Clientes_ISP_DEMO %>% 
+                     dplyr::select(Nombre, Latitud, Longitud),
+                   by = "Nombre") %>% 
+  dplyr::left_join(Clientes_ISP_DEMO %>% 
+                     dplyr::select(Nombre, Plan.Precio),
+                   by = "Nombre") %>% 
+  dplyr::left_join(Clientes_ISP_DEMO %>% 
+                     dplyr::select(Nombre, Estado),
+                   by = "Nombre")
+names(DB_Facturas)[which(colnames(DB_Facturas)== "Estado.x")] <- "Estado_Factura"
+names(DB_Facturas)[which(colnames(DB_Facturas)== "Estado.y")] <- "Estado_Cliente"
+
+
+# DB_Facturas %>% 
+#   dplyr::filter(Mes_facturacion == Mes_en_curso) %>% 
+#   dplyr::filter(Estado_Cliente == "Activo") %>% 
+#   dplyr::pull(Plan.Precio) %>% 
+#   max()
+# 
+# DB_Facturas %>% 
+#   dplyr::filter(Mes_facturacion == Mes_en_curso) %>% 
+#   dplyr::filter(Estado_Cliente == "Activo") %>% 
+#   dplyr::pull(Plan.Precio) %>% 
+#   min()
+# 
+# DB_Facturas %>% 
+#   dplyr::filter(Mes_facturacion == Mes_en_curso) %>% 
+#   dplyr::filter(Estado_Cliente == "Activo") %>% 
+#   dplyr::pull(Plan.Precio) %>% 
+#   mean()
+# 
+# DB_Facturas %>% 
+#   dplyr::filter(Mes_facturacion == Mes_en_curso) %>% 
+#   dplyr::filter(Estado_Cliente == "Activo") %>% 
+#   dplyr::pull(Plan.Precio) %>% 
+#   sd()
+
+ARPU_Mes <- DB_Facturas %>% 
+  dplyr::filter(Estado_Cliente == "Activo") %>% 
+  dplyr::group_by(Mes_facturacion) %>% 
+  dplyr::summarise(Arpu = round(mean(Plan.Precio, na.rm = TRUE), digits = 2) , .groups = "drop")
+
+ARPU_Mes_actual <- ARPU_Mes %>% 
+  dplyr::filter(Mes_facturacion == Mes_en_curso) %>% 
+  dplyr::pull(Arpu) 
 
 ## Main login screen ----
 loginpage <- div(id = "loginpage", style = "width: 500px; max-width: 100%; margin: 0 auto; padding: 20px;",
@@ -473,7 +536,8 @@ server <- function(input, output, session) {
     }
   })
   
-  ##### UI SIDE  ----  
+  ##### UI SIDE  ----
+  # aqui estan metido todo el body layout de la app 
   output$body <- renderUI({
     if (USER$login == TRUE ) {
       tabItems(
@@ -482,13 +546,13 @@ server <- function(input, output, session) {
         tabItem(tabName ="Comercial", class = "active", #solo un tab puede ser "class = active" este tab es el que se despliega al inicio
                 fluidRow(
                   valueBox(Clientes_activos, "Clientes Activos", icon = icon("user")),
-                  valueBox(" ", "Cortes", icon = icon("user"), color = "red"),
+                  valueBox(paste0("Q ", ARPU_Mes_actual), "ARPU", icon = icon("user"), color = "green"),
                   valueBox(" ", "Suspendidos", icon = icon("user"), color = "orange"),
                   #),
                   #fluidRow(
                   #box(width = 12, dataTableOutput('results'))
-                  box(width = 12, echarts4rOutput("Clientes_Municipio") %>% withSpinner(color=color_spinner)),
-                  box(width = 12, echarts4rOutput("Instalaciones_mes") %>% withSpinner(color=color_spinner)),
+                  box(width = 6, echarts4rOutput("Clientes_Municipio", height = 300) %>% withSpinner(color=color_spinner)),
+                  box(width = 6, echarts4rOutput("Instalaciones_mes", height = 300) %>% withSpinner(color=color_spinner)),
                   box(width = 12, echarts4rOutput("Clientes_Municipio_ultimo_mes") %>% withSpinner(color=color_spinner)),
                   box(width = 12, echarts4rOutput("instalaciones_por_municipio_2023_2024") %>% withSpinner(color=color_spinner))
                   #)
@@ -609,7 +673,7 @@ server <- function(input, output, session) {
       dplyr::group_by(Mes_Instalacion) %>% 
       echarts4r::e_charts(x = Ciudad.Municipio.1) %>% 
       echarts4r::e_bar(serie = Clientes, smooth = TRUE) %>% 
-      echarts4r::e_title("Clientes Nuevos Junio 2024", "Clientes por municipio Junio") %>% # Add title & subtitle
+      echarts4r::e_title("Clientes Nuevos Junio vrs Julio 2024", "Comparativo de clientes instalados nuevos por municipio Junio vrs Julio") %>% # Add title & subtitle
       echarts4r::e_tooltip(trigger = "axis") %>%  # tooltip
       echarts4r::e_legend(bottom = 0) %>% # move legend to the bottom
       echarts4r::e_labels(fontSize = 10) %>% 
