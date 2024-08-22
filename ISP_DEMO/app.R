@@ -641,7 +641,7 @@ server <- function(input, output, session) {
       dplyr::summarise(Clientes = n(), .groups = "drop") %>% 
       echarts4r::e_chart(x = Ciudad.Municipio.1) %>% 
       echarts4r::e_bar(serie = Clientes, smooth = TRUE) %>% 
-      echarts4r::e_title("Clientes Activos 2024", "Clientes por municipio") %>% # Add title & subtitle
+      echarts4r::e_title("Clientes Activos 2024", "Clientes por Region") %>% # Add title & subtitle
       echarts4r::e_tooltip(trigger = "axis") %>%  # tooltip
       #echarts4r::e_legend(bottom = 0) %>% # move legend to the bottom
       echarts4r::e_labels(fontSize = 10) %>% 
@@ -673,7 +673,7 @@ server <- function(input, output, session) {
       dplyr::group_by(Mes_Instalacion) %>% 
       echarts4r::e_charts(x = Ciudad.Municipio.1) %>% 
       echarts4r::e_bar(serie = Clientes, smooth = TRUE) %>% 
-      echarts4r::e_title("Clientes Nuevos Junio vrs Julio 2024", "Comparativo de clientes instalados nuevos por municipio Junio vrs Julio") %>% # Add title & subtitle
+      echarts4r::e_title("Clientes Nuevos Junio vrs Julio 2024", "Comparativo de clientes instalados nuevos por region Junio vrs Julio") %>% # Add title & subtitle
       echarts4r::e_tooltip(trigger = "axis") %>%  # tooltip
       echarts4r::e_legend(bottom = 0) %>% # move legend to the bottom
       echarts4r::e_labels(fontSize = 10) %>% 
@@ -695,7 +695,7 @@ server <- function(input, output, session) {
       dplyr::group_by(Ciudad.Municipio.1) %>% 
       echarts4r::e_charts(x = Mes_Instalacion) %>% 
       echarts4r::e_line(serie = Instalaciones_Mensuales, smooth = TRUE) %>% 
-      echarts4r::e_title("Instalaciones 2023 y 2024", "Mensual por Municipio") %>% # Add title & subtitle
+      echarts4r::e_title("Instalaciones 2023 y 2024", "Mensual por Region") %>% # Add title & subtitle
       echarts4r::e_tooltip(trigger = "axis") %>%  # tooltip
       echarts4r::e_legend(bottom = 0) %>% # move legend to the bottom
       echarts4r::e_labels(fontSize = 10) %>% 
@@ -719,7 +719,7 @@ server <- function(input, output, session) {
       dplyr::group_by(Ciudad.Municipio) %>% 
       echarts4r::e_charts(x = Inicio_Semana) %>% 
       echarts4r::e_line(serie = Cnt_Tickets, smooth = TRUE) %>% 
-      echarts4r::e_title("Averias 2024", "Semanal por Municipio") %>% # Add title & subtitle
+      echarts4r::e_title("Averias 2024", "Semanal por Region") %>% # Add title & subtitle
       echarts4r::e_tooltip(trigger = "axis") %>%  # tooltip
       echarts4r::e_legend(bottom = 0) %>% # move legend to the bottom
       echarts4r::e_labels(fontSize = 10) %>% 
@@ -733,7 +733,7 @@ server <- function(input, output, session) {
       dplyr::group_by(Ciudad.Municipio) %>% 
       echarts4r::e_charts(x = Mes) %>% 
       echarts4r::e_line(serie = Cnt_Tickets, smooth = TRUE) %>% 
-      echarts4r::e_title("Averias 2024", "Mensual por Municipio") %>% # Add title & subtitle
+      echarts4r::e_title("Averias 2024", "Mensual por Region") %>% # Add title & subtitle
       echarts4r::e_tooltip(trigger = "axis") %>%  # tooltip
       echarts4r::e_legend(bottom = 0) %>% # move legend to the bottom
       echarts4r::e_labels(fontSize = 10) %>% 
